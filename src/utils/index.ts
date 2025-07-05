@@ -14,6 +14,7 @@ import {
 import TableList, { ListContainer } from '../formats/list';
 import TableHeader from '../formats/header';
 import { COLORS, DEVIATION } from '../config';
+import { querySelector } from './shadow-dom';
 
 function addDimensionsUnit(value: string) {
   if (!value) return value;
@@ -34,8 +35,10 @@ function convertUnitToInteger(withUnit: string) {
   return `${integerPart}${unit}`;
 }
 
-function createTooltip(content: string) {
-  const element = document.createElement('div');
+function createTooltip(content: string, contextElement?: Element | Node) {
+  // Import shadow DOM utilities within function to avoid circular imports
+  const doc = contextElement?.ownerDocument || document;
+  const element = doc.createElement('div');
   element.innerText = content;
   element.classList.add('ql-table-tooltip', 'ql-hidden');
   return element;
@@ -194,6 +197,28 @@ function getComputeSelectedTds(
 }
 
 function getCopyTd(html: string) {
+  // First, convert ql-align-* classes to inline text-align styles
+  html = html.replace(/<p[^>]*class="[^"]*ql-align-([^"\s]+)[^"]*"[^>]*>/gi, (match, align) => {
+    // Extract existing style attribute if present
+    const styleMatch = match.match(/style="([^"]*)"/);
+    let existingStyle = styleMatch ? styleMatch[1] : '';
+    
+    // Remove any existing text-align from style
+    existingStyle = existingStyle.replace(/text-align:\s*[^;]+;?/g, '').trim();
+    
+    // Add new text-align
+    const newStyle = existingStyle 
+      ? `${existingStyle}; text-align: ${align}` 
+      : `text-align: ${align}`;
+    
+    // Replace or add style attribute
+    if (styleMatch) {
+      return match.replace(/style="[^"]*"/, `style="${newStyle}"`);
+    } else {
+      return match.replace(/>$/, ` style="${newStyle}">`);
+    }
+  });
+  
   return html
   .replace(/data-(?!list)[a-z]+="[^"]*"/g, '')
   .replace(/class="[^"]*"/g, collapse => {
@@ -237,12 +262,33 @@ function getCorrectCellBlot(blot: TableCell | TableCellChildren): TableCell | nu
   return null;
 }
 
-function getCorrectWidth(width: number, isPercent: boolean) {
-  const container = document.querySelector('.ql-editor');
-  const { clientWidth } = container;
-  const computedStyle = getComputedStyle(container);
-  const pl = ~~computedStyle.getPropertyValue('padding-left');
-  const pr = ~~computedStyle.getPropertyValue('padding-right');
+function getCorrectWidth(width: number, isPercent: boolean, contextElement?: Element) {
+  // Use shadow DOM utilities to find the editor container
+  const container = contextElement 
+    ? contextElement.closest('.ql-editor') || querySelector('.ql-editor', contextElement)
+    : document.querySelector('.ql-editor');
+    
+  if (!container) {
+    // Fallback: try to find the editor through the context element's root
+    const root = contextElement?.getRootNode?.() || document;
+    const editorInRoot = (root as Document | ShadowRoot).querySelector('.ql-editor');
+    if (!editorInRoot) {
+      console.error('Could not find .ql-editor element');
+      return isPercent ? '0%' : '0px';
+    }
+    const { clientWidth } = editorInRoot as HTMLElement;
+    const computedStyle = getComputedStyle(editorInRoot as HTMLElement);
+    const pl = parseInt(computedStyle.getPropertyValue('padding-left'), 10) || 0;
+    const pr = parseInt(computedStyle.getPropertyValue('padding-right'), 10) || 0;
+    const w = clientWidth - pl - pr;
+    if (!isPercent) return `${width}px`;
+    return `${((width / w) * 100).toFixed(2)}%`;
+  }
+  
+  const { clientWidth } = container as HTMLElement;
+  const computedStyle = getComputedStyle(container as HTMLElement);
+  const pl = parseInt(computedStyle.getPropertyValue('padding-left'), 10) || 0;
+  const pr = parseInt(computedStyle.getPropertyValue('padding-right'), 10) || 0;
   const w = clientWidth - pl - pr;
   if (!isPercent) return `${width}px`;
   return `${((width / w) * 100).toFixed(2)}%`;
@@ -252,10 +298,11 @@ function getElementStyle(node: HTMLElement, rules: string[]) {
   const computedStyle = getComputedStyle(node);
   const style = node.style;
   return rules.reduce((styles: Props, rule: string) => {
-    styles[rule] = rgbToHex(
-      style.getPropertyValue(rule) ||
-      computedStyle.getPropertyValue(rule)
-    );
+    const inlineValue = style.getPropertyValue(rule);
+    const computedValue = computedStyle.getPropertyValue(rule);
+    const finalValue = inlineValue || computedValue;
+    
+    styles[rule] = rgbToHex(finalValue);
     return styles;
   }, {});
 }
@@ -276,10 +323,13 @@ function isValidColor(color: string) {
   if (!color) return true;
   const hexRegex = /^#([A-Fa-f0-9]{3,6})$/;
   const rgbRegex = /^rgb\((\d{1,3}), (\d{1,3}), (\d{1,3})\)$/;
+  const refRegex = /^var\(--[^\)]+\)$/;
   // const rgbaRegex = /^rgba\((\d{1,3}), (\d{1,3}), (\d{1,3}), (\d{1,3})\)$/;
   if (hexRegex.test(color)) {
     return true;
   } else if (rgbRegex.test(color)) {
+    return true;
+  } else if (refRegex.test(color)) {
     return true;
   }
   return isSimpleColor(color);
@@ -388,11 +438,11 @@ function updateTableWidth(
       _width += width;
     }
     setElementProperty(temporary.domNode, {
-      width: getCorrectWidth(_width, isPercent)
+      width: getCorrectWidth(_width, isPercent, table)
     });
   } else {
     setElementProperty(temporary.domNode, {
-      width: getCorrectWidth(tableBounds.width + change, isPercent)
+      width: getCorrectWidth(tableBounds.width + change, isPercent, table)
     });
   }
 }
@@ -428,3 +478,4 @@ export {
   throttleStrong,
   updateTableWidth
 };
+

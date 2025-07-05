@@ -13,7 +13,7 @@ module.exports = merge(commonConfig, {
   },
   devServer: {
     compress: true,
-    port: 3000,
+    port: 3010,
     open: true
   },
   plugins: [

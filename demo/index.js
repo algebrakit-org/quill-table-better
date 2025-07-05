@@ -33,6 +33,10 @@ const options = {
   theme: 'snow',
   modules: {
     toolbar: toolbarOptions,
+    history: {
+        delay: 1000,
+        maxStack: 100
+    },
     table: false,
     'table-better': {
       toolbarTable: true
@@ -43,13 +47,25 @@ const options = {
   }
 };
 
+let initHTML = document.getElementById('root').innerHTML;
+document.getElementById('root').innerHTML = '';
 const editor = new Quill('#root', options);
+const initDelta = editor.clipboard.convert({ html: initHTML });
+const [range] = editor.selection.getRange();
+editor.updateContents(initDelta, Quill.sources.USER);
+editor.setSelection(
+  initDelta.length() - (range?.length || 0),
+  Quill.sources.SILENT
+);
+editor.scrollSelectionIntoView();
+
 const tableModule = editor.getModule('table-better');
 const btn1 = document.getElementById('btn1');
 const btn2 = document.getElementById('btn2');
 const btn3 = document.getElementById('btn3');
 const btn4 = document.getElementById('btn4');
 const btn5 = document.getElementById('btn5');
+const btn6 = document.getElementById('btn6');
 const deltaData = document.getElementById('deltaData');
 let delta = null;
 let html = '';
@@ -82,4 +98,9 @@ btn5.onclick = () => {
     Quill.sources.SILENT,
   );
   editor.scrollSelectionIntoView();
+}
+
+btn6.onclick = () => {
+  html = editor.getSemanticHTML();
+  deltaData.textContent = html;
 }

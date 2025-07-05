@@ -1,4 +1,5 @@
 import Quill from 'quill';
+import Delta from 'quill-delta';
 import type {
   QuillTableBetter,
   TableCell,
@@ -10,6 +11,7 @@ import {
   setElementAttribute,
   updateTableWidth
 } from '../utils';
+import { addEventListener, createElement, getRootContext } from '../utils/shadow-dom';
 
 interface Options {
   tableNode: HTMLElement;
@@ -34,6 +36,8 @@ class OperateLine {
   dragTable: HTMLElement | null;
   direction: string | null;
   tableBetter: QuillTableBetter;
+  resizeCompleted: boolean;
+  allDragListeners: Array<{element: Element | Document, event: string, handler: EventListener}>;
   constructor(quill: Quill, tableBetter?: QuillTableBetter) {
     this.quill = quill;
     this.options = null;
@@ -43,11 +47,13 @@ class OperateLine {
     this.dragTable = null;
     this.direction = null; // 1.level 2.vertical
     this.tableBetter = tableBetter;
+    this.resizeCompleted = false;
+    this.allDragListeners = [];
     this.quill.root.addEventListener('mousemove', this.handleMouseMove.bind(this));
   }
 
   createDragBlock() {
-    const dragBlock = document.createElement('div');
+    const dragBlock = createElement('div', this.quill.root);
     dragBlock.classList.add('ql-operate-block');
     const { dragBlockProps } = this.getProperty(this.options);
     setElementProperty(dragBlock, dragBlockProps);
@@ -57,7 +63,7 @@ class OperateLine {
   }
 
   createDragTable(table: Element) {
-    const dragTable = document.createElement('div');
+    const dragTable = createElement('div', this.quill.root);
     const properties = this.getDragTableProperty(table);
     dragTable.classList.add('ql-operate-drag-table');
     setElementProperty(dragTable, properties);
@@ -66,8 +72,8 @@ class OperateLine {
   }
 
   createOperateLine() {
-    const container = document.createElement('div');
-    const line = document.createElement('div');
+    const container = createElement('div', this.quill.root);
+    const line = createElement('div', this.quill.root);
     container.classList.add('ql-operate-line-container');
     const { containerProps, lineProps } = this.getProperty(this.options);
     setElementProperty(container, containerProps);
@@ -200,6 +206,13 @@ class OperateLine {
       }
       return;
     }
+    
+    // Reset the flag when user moves mouse over table area after a resize
+    // This allows new legitimate resize operations
+    if (this.resizeCompleted) {
+      this.resizeCompleted = false;
+    }
+    
     const options = { tableNode, cellNode, mousePosition };
     if (!this.line) {
       this.options = options;
@@ -221,6 +234,39 @@ class OperateLine {
 
   hideLine() {
     this.line && setElementProperty(this.line, { display: 'none' });
+  }
+
+  removeLine() {
+    if (this.line) {
+      this.line.remove();
+      this.line = null;
+    }
+  }
+
+  removeDragBlock() {
+    if (this.dragBlock) {
+      this.dragBlock.remove();
+      this.dragBlock = null;
+    }
+  }
+
+  removeDragTable() {
+    if (this.dragTable) {
+      this.dragTable.remove();
+      this.dragTable = null;
+    }
+  }
+
+  addCurrentDragListener(element: Element | Document, event: string, handler: EventListener) {
+    element.addEventListener(event, handler);
+    this.allDragListeners.push({ element, event, handler });
+  }
+
+  cleanupAllDragListeners() {
+    this.allDragListeners.forEach(({ element, event, handler }) => {
+      element.removeEventListener(event, handler);
+    });
+    this.allDragListeners = [];
   }
 
   isLine(node: Element) {
@@ -271,7 +317,7 @@ class OperateLine {
         }
       }
       for (const [node, width] of preNodes) {
-        const correctWidth = getCorrectWidth(~~width, isPercent);
+        const correctWidth = getCorrectWidth(~~width, isPercent, cell);
         setElementAttribute(node, { width: correctWidth });
         setElementProperty(node as HTMLElement, { width: correctWidth });
       }
@@ -304,7 +350,9 @@ class OperateLine {
       for (const cell of cells) {
         const colspan = ~~cell.getAttribute('colspan') || 1;
         const { width, height } = cell.getBoundingClientRect();
-        preNodes.push([cell, `${Math.ceil(width + averageX * colspan)}`, `${Math.ceil(height + averageY)}`]);
+        const newWidth = Math.ceil(width + averageX * colspan);
+        const newHeight = Math.ceil(height + averageY);
+        preNodes.push([cell, `${newWidth}`, `${newHeight}`]);
       }
     }
     if (colgroup) {
@@ -320,7 +368,7 @@ class OperateLine {
       }
     } else {
       for (const [node, width, height] of preNodes) {
-        const correctWidth = getCorrectWidth(~~width, isPercent);
+        const correctWidth = getCorrectWidth(~~width, isPercent, node as Element);
         setElementAttribute(node, { height, width: correctWidth });
         setElementProperty(node as HTMLElement, { height, width: correctWidth });
       }
@@ -340,6 +388,7 @@ class OperateLine {
   }
 
   toggleLineChildClass(isAdd: boolean) {
+    if (!this.line?.firstElementChild) return;
     const node = this.line.firstElementChild;
     if (isAdd) {
       node.classList.add('ql-operate-line');
@@ -366,6 +415,12 @@ class OperateLine {
 
     const handleMouseup = (e: MouseEvent) => {
       e.preventDefault();
+      
+      // Prevent phantom resize operations after legitimate drag completes
+      if (!this.drag) {
+        return;
+      }
+      
       const { cellNode, tableNode } = this.options;
       if (isLine) {
         this.setCellRect(cellNode, e.clientX, e.clientY);
@@ -380,13 +435,35 @@ class OperateLine {
         this.hideDragTable();
       }
       this.drag = false;
-      document.removeEventListener('mousemove', handleDrag, false);
-      document.removeEventListener('mouseup', handleMouseup, false);
+      
+      // CRITICAL: Properly clean up ALL event listeners to prevent phantom events
+      this.cleanupAllDragListeners();
+      
+      // Set flag to prevent immediate recreation of line elements
+      this.resizeCompleted = true;
+      
+      // Remove line elements after resize operation
+      this.removeLine();
+      this.removeDragBlock();
+      this.removeDragTable();
+      
       this.tableBetter.tableMenus.updateMenus(tableNode);
+      
+      // Notify Quill of content changes after resize operations
+      // First update Quill's internal state
+      this.quill.update(Quill.sources.API);
+      
+      // Then manually emit a text-change event since resize operations only modify DOM attributes
+      // This ensures any listeners are properly notified of the table structure change
+      this.quill.emitter.emit(Quill.events.TEXT_CHANGE, new Delta(), this.quill.getContents(), Quill.sources.API);
     }
 
     const handleMousedown = (e: MouseEvent) => {
       e.preventDefault();
+      
+      // Reset flag when user starts a legitimate drag operation
+      this.resizeCompleted = false;
+      
       const { tableNode } = this.options;
       if (isLine) {
         this.toggleLineChildClass(true);
@@ -399,8 +476,17 @@ class OperateLine {
         }
       }
       this.drag = true;
-      document.addEventListener('mousemove', handleDrag);
-      document.addEventListener('mouseup', handleMouseup);
+      // Get the actual target that shadow DOM utilities will use
+      const actualTarget = getRootContext(this.quill.root);
+      
+      // Store references for cleanup (append to global list)
+      this.allDragListeners.push(
+        { element: actualTarget as Element | Document, event: 'mousemove', handler: handleDrag },
+        { element: actualTarget as Element | Document, event: 'mouseup', handler: handleMouseup }
+      );
+      // Use shadow DOM utilities for actual attachment
+      addEventListener('mousemove', handleDrag, this.quill.root);
+      addEventListener('mouseup', handleMouseup, this.quill.root);
     }
     node.addEventListener('mousedown', handleMousedown);
   }

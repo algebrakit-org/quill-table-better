@@ -1,4 +1,5 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const path = require('path');
 
 module.exports = {
   module: {
@@ -34,6 +35,9 @@ module.exports = {
     filename: '[name].css'
   })],
   resolve: {
-    extensions: ['.ts', '.scss', '.js']
+    extensions: ['.ts', '.scss', '.js'],
+    alias: {
+      'quill': path.resolve(__dirname, '../../quill/packages/quill/dist')
+    }
   }
 };

@@ -1,4 +1,7 @@
 export default {
+  'colorMain': 'Main color',
+  'colorSecondary': 'Secondary color',
+  'colorTertiary': 'Tertiary color',
   'col': 'Column',
   'insColL': 'Insert column left',
   'insColR': 'Insert column right',

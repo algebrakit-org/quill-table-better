@@ -207,6 +207,7 @@ const TABLE_PROPERTIES = [
   'align'
 ];
 
+const BORDER_STYLES = ['solid', 'dashed', 'dotted', 'none'];
 function getCellProperties(attribute: Props, useLanguage: UseLanguageHandler) {
   return {
     title: useLanguage('cellProps'),
@@ -218,7 +219,7 @@ function getCellProperties(attribute: Props, useLanguage: UseLanguageHandler) {
             category: 'dropdown',
             propertyName: 'border-style',
             value: attribute['border-style'],
-            options: ['dashed', 'dotted', 'double', 'groove', 'inset', 'none', 'outset', 'ridge', 'solid'],
+            options: BORDER_STYLES,
           },
           {
             category: 'color',
@@ -427,6 +428,8 @@ function getProperties({ type, attribute }: Options, useLanguage: UseLanguageHan
   return getCellProperties(attribute, useLanguage);
 }
 
+const SHOW_TOOLTIPS_IN_CELL_MENU = false; // Set to false to disable tooltips in the table properties form
+
 export {
   CELL_ATTRIBUTE,
   CELL_DEFAULT_VALUES,
@@ -435,5 +438,6 @@ export {
   COLORS,
   DEVIATION,
   TABLE_PROPERTIES,
+  SHOW_TOOLTIPS_IN_CELL_MENU,
   getProperties
 };

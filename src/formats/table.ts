@@ -527,7 +527,13 @@ class TableContainer extends Container {
       .replace(/<temporary[^>]*>(.*?)<\/temporary>/gi, '')
       .replace(/<td[^>]*>(.*?)<\/td>/gi, ($1: string) => {
         return getCopyTd($1);
-      });
+      })
+      .replace(/\sclass="ql-[^"]*"/g, '')
+      .replace(/\sclass=""/g, '');
+  }
+
+  html() {
+    return this.getCopyTable();
   }
 
   getCorrectRow(prev: TableRow, maxColumns: number) {

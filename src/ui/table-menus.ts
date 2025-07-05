@@ -22,6 +22,7 @@ import {
   getElementStyle,
   updateTableWidth
 } from '../utils';
+import { createElement, createDocumentFragment } from '../utils/shadow-dom';
 import columnIcon from '../assets/icon/column.svg';
 import rowIcon from '../assets/icon/row.svg';
 import mergeIcon from '../assets/icon/merge.svg';
@@ -360,10 +361,10 @@ class TableMenus {
 
   createList(children: Children) {
     if (!children) return null;
-    const container = document.createElement('ul');
+    const container = createElement('ul', this.quill.root);
     for (const [, child] of Object.entries(children)) {
       const { content, divider, createSwitch, handler } = child;
-      const list = document.createElement('li');
+      const list = createElement('li', this.quill.root);
       if (createSwitch) {
         list.classList.add('ql-table-header-row');
         list.appendChild(this.createSwitch(content));
@@ -374,7 +375,7 @@ class TableMenus {
       list.addEventListener('click', handler.bind(this));
       container.appendChild(list);
       if (divider) {
-        const dividerLine = document.createElement('li');
+        const dividerLine = createElement('li', this.quill.root);
         dividerLine.classList.add('ql-table-divider');
         container.appendChild(dividerLine);
       }
@@ -384,8 +385,8 @@ class TableMenus {
   }
 
   createMenu(left: string, right: string, isDropDown: boolean, category: string) {
-    const container = document.createElement('div');
-    const dropDown = document.createElement('span');
+    const container = createElement('div', this.quill.root);
+    const dropDown = createElement('span', this.quill.root);
     if (isDropDown) {
       dropDown.innerHTML = left + right;
     } else {
@@ -402,12 +403,12 @@ class TableMenus {
     const { language, options = {} } = this.tableBetter;
     const { menus } = options;
     const useLanguage = language.useLanguage.bind(language);
-    const container = document.createElement('div');
+    const container = createElement('div', this.quill.root);
     container.classList.add('ql-table-menus-container', 'ql-hidden');
     for (const [category, val] of Object.entries(getMenusConfig(useLanguage, menus))) {
       const { content, icon, children, handler } = val;
       const list = this.createList(children);
-      const tooltip = createTooltip(content);
+      const tooltip = createTooltip(content, this.quill.root);
       const menu = this.createMenu(icon, downIcon, !!children, category);
       menu.appendChild(tooltip);
       list && menu.appendChild(list);
@@ -419,10 +420,10 @@ class TableMenus {
   }
 
   createSwitch(content: string) {
-    const fragment = document.createDocumentFragment();
-    const title = document.createElement('span');
-    const switchContainer = document.createElement('span');
-    const switchInner = document.createElement('span');
+    const fragment = createDocumentFragment(this.quill.root);
+    const title = createElement('span', this.quill.root);
+    const switchContainer = createElement('span', this.quill.root);
+    const switchInner = createElement('span', this.quill.root);
     title.innerText = content;
     switchContainer.classList.add('ql-table-switch');
     switchInner.classList.add('ql-table-switch-inner');

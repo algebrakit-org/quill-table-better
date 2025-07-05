@@ -14,7 +14,7 @@ import downIcon from '../assets/icon/down.svg';
 import paletteIcon from '../assets/icon/palette.svg';
 import saveIcon from '../assets/icon/save.svg';
 import closeIcon from '../assets/icon/close.svg';
-import { getProperties } from '../config';
+import { getProperties, SHOW_TOOLTIPS_IN_CELL_MENU } from '../config';
 import {
   addDimensionsUnit,
   createTooltip,
@@ -25,6 +25,7 @@ import {
   setElementProperty,
   setElementAttribute
 } from '../utils';
+import { createElement, createDocumentFragment, getViewportDimensions } from '../utils/shadow-dom';
 import { ListContainer } from '../formats/list';
 import iro from '@jaames/iro';
 
@@ -67,21 +68,21 @@ const ACTION_LIST = [
 ];
 
 const COLOR_LIST: ColorList[] = [
+  { value: 'var(--akit-color-primary)', describe: 'colorMain'},
+  { value: 'var(--akit-color-secondary)', describe: 'colorSecondary'},
+  { value: 'var(--akit-color-tertiary)', describe: 'colorTertiary'},
   { value: '#000000', describe: 'black' },
   { value: '#4d4d4d', describe: 'dimGrey' },
   { value: '#808080', describe: 'grey' },
   { value: '#e6e6e6', describe: 'lightGrey' },
   { value: '#ffffff', describe: 'white' },
   { value: '#ff0000', describe: 'red' },
-  { value: '#ffa500', describe: 'orange' },
+  { value: '#0000ff', describe: 'blue' },
   { value: '#ffff00', describe: 'yellow' },
   { value: '#99e64d', describe: 'lightGreen' },
   { value: '#008000', describe: 'green' },
-  { value: '#7fffd4', describe: 'aquamarine' },
   { value: '#40e0d0', describe: 'turquoise' },
   { value: '#4d99e6', describe: 'lightBlue' },
-  { value: '#0000ff', describe: 'blue' },
-  { value: '#800080', describe: 'purple' }
 ];
 
 class TablePropertiesForm {
@@ -111,17 +112,18 @@ class TablePropertiesForm {
 
   createActionBtns(listener: EventListener, showLabel: boolean) {
     const useLanguage = this.getUseLanguage();
-    const container = document.createElement('div');
-    const fragment = document.createDocumentFragment();
+    const container = createElement('div', this.tableMenus.quill.root);
+    const fragment = createDocumentFragment(this.tableMenus.quill.root);
     container.classList.add('properties-form-action-row');
     for (const { icon, label } of ACTION_LIST) {
-      const button = document.createElement('button');
-      const iconContainer = document.createElement('span');
+      const button = createElement('button', this.tableMenus.quill.root);
+      button.setAttribute('type', 'button');
+      const iconContainer = createElement('span', this.tableMenus.quill.root);
       iconContainer.innerHTML = icon;
       button.appendChild(iconContainer);
       setElementAttribute(button, { label });
       if (showLabel) {
-        const labelContainer = document.createElement('span');
+        const labelContainer = createElement('span', this.tableMenus.quill.root);
         labelContainer.innerText = useLanguage(label);
         button.appendChild(labelContainer);
       }
@@ -144,8 +146,10 @@ class TablePropertiesForm {
       if (this.options.attribute[propertyName] === align) {
         container.classList.add('ql-table-btns-checked');
       }
-      const tooltip = createTooltip(describe);
-      container.appendChild(tooltip);
+      if(SHOW_TOOLTIPS_IN_CELL_MENU) {
+        const tooltip = createTooltip(describe, this.tableMenus.quill.root);
+        container.appendChild(tooltip);
+      }
       fragment.appendChild(container);
     }
     container.classList.add('ql-table-check-container');
@@ -184,15 +188,17 @@ class TablePropertiesForm {
     container.classList.add('color-list');
     for (const { value, describe } of COLOR_LIST) {
       const li = document.createElement('li');
-      const tooltip = createTooltip(useLanguage(describe));
+      const tooltip = createTooltip(useLanguage(describe), this.tableMenus.quill.root);
       li.setAttribute('data-color', value);
       li.classList.add('ql-table-tooltip-hover');
       setElementProperty(li, { 'background-color': value });
-      li.appendChild(tooltip);
+      // li.appendChild(tooltip); // this tooltip is annoying and useless
       fragment.appendChild(li);
     }
     container.appendChild(fragment);
     container.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
       const target = e.target as HTMLLIElement;
       const value = (
         target.tagName === 'DIV'
@@ -217,7 +223,9 @@ class TablePropertiesForm {
       colorButton.classList.add('color-unselected');
     }
     const select = this.createColorPickerSelect(propertyName);
-    colorButton.addEventListener('click', () => {
+    colorButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       this.toggleHidden(select);
       const colorContainer = this.getColorClosest(container);
       const input: HTMLInputElement = colorContainer?.querySelector('.property-input');
@@ -232,12 +240,17 @@ class TablePropertiesForm {
     const container = document.createElement('div');
     const icon = document.createElement('span');
     const button = document.createElement('button');
+    button.setAttribute('type', 'button');
     icon.innerHTML = svg;
     button.innerText = text;
     container.classList.add('erase-container');
     container.appendChild(icon);
     container.appendChild(button);
-    container.addEventListener('click', listener);
+    container.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      listener(e);
+    });
     return container;
   }
 
@@ -303,6 +316,11 @@ class TablePropertiesForm {
       valid && this.switchHidden(status, valid(value));
       this.updateInputStatus(wrapper, valid && !valid(value));
       this.setAttribute(propertyName, value, container);
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
     });
     status.classList.add('label-field-view-status', 'ql-hidden');
     message && (status.innerText = message);
@@ -453,7 +471,7 @@ class TablePropertiesForm {
     this.setBorderDisabled();
     this.tableMenus.quill.container.appendChild(container);
     this.updatePropertiesForm(container, options.type);
-    this.setSaveButton(actions);
+    this.setSaveButton(actions as HTMLDivElement);
     container.addEventListener('click', (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       this.hiddenSelectList(target);
@@ -514,9 +532,10 @@ class TablePropertiesForm {
   }
 
   getViewportSize() {
+    const { width, height } = getViewportDimensions(this.tableMenus.quill.root);
     return {
-      viewWidth: document.documentElement.clientWidth,
-      viewHeight: document.documentElement.clientHeight
+      viewWidth: width,
+      viewHeight: height
     }
   }
 

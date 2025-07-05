@@ -17,6 +17,7 @@ import {
   getCorrectBounds,
   getCorrectCellBlot
 } from '../utils';
+import { addEventListener, getSelection, createElement } from '../utils/shadow-dom';
 import { applyFormat } from '../utils/clipboard-matchers';
 import {
   TableCellBlock,
@@ -385,10 +386,10 @@ class CellSelection {
   }
 
   initDocumentListener() {
-    document.addEventListener('copy', (e: ClipboardEvent) => this.onCaptureCopy(e, false));
-    document.addEventListener('cut', (e: ClipboardEvent) => this.onCaptureCopy(e, true));
-    document.addEventListener('keyup', this.handleDeleteKeyup.bind(this));
-    document.addEventListener('paste', this.onCapturePaste.bind(this));
+    addEventListener('copy', (e: ClipboardEvent) => this.onCaptureCopy(e, false), this.quill.root);
+    addEventListener('cut', (e: ClipboardEvent) => this.onCaptureCopy(e, true), this.quill.root);
+    addEventListener('keyup', this.handleDeleteKeyup.bind(this), this.quill.root);
+    addEventListener('paste', this.onCapturePaste.bind(this), this.quill.root);
   }
 
   initWhiteList() {
@@ -538,7 +539,7 @@ class CellSelection {
     e.preventDefault();
     const html = e.clipboardData?.getData('text/html');
     const text = e.clipboardData?.getData('text/plain');
-    const container = document.createElement('div');
+    const container = createElement('div', this.quill.root);
     container.innerHTML = html;
     const copyRows = Array.from(container.querySelectorAll('tr'));
     if (!copyRows.length) return;
@@ -734,7 +735,7 @@ class CellSelection {
         const blot = toolbar.handlers[format].call(toolbar, value, lines);
         blot && selectedTds.push(getCorrectCellBlot(blot).domNode);
       } else {
-        const selection = window.getSelection();
+        const selection = getSelection(this.quill.root);
         selection.selectAllChildren(td);
         this.quill.format(format, value, Quill.sources.USER);
         selection.removeAllRanges();

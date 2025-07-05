@@ -4,7 +4,8 @@ const { merge } = require('webpack-merge');
 const commonConfig = require('./webpack.common');
 
 module.exports = merge(commonConfig, {
-  mode: 'production',
+  mode: 'development',
+  devtool: 'inline-source-map',
   context: path.resolve(__dirname, '../src'),
   entry: {
     'quill-table-better.js': './quill-table-better.ts',
@@ -16,7 +17,7 @@ module.exports = merge(commonConfig, {
     libraryExport: 'default',
     libraryTarget: 'umd',
     path: path.resolve(__dirname, '../dist'),
-    clean: true
+    clean: false
   },
   externals: {
     'quill': {
@@ -27,6 +28,6 @@ module.exports = merge(commonConfig, {
     }
   },
   optimization: {
-    minimize: true
+    minimize: false
   }
 });

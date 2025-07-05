@@ -33,6 +33,7 @@ import OperateLine from './ui/operate-line';
 import TableMenus from './ui/table-menus';
 import ToolbarTable, { TableSelect } from './ui/toolbar-table';
 import { getCellId, getCorrectCellBlot } from './utils';
+import { addEventListener, getRootContext } from './utils/shadow-dom';
 import TableToolbar from './modules/toolbar';
 import TableClipboard from './modules/clipboard';
 
@@ -283,13 +284,13 @@ class Table extends Module {
     button.addEventListener('click', (e: MouseEvent) => {
       this.tableSelect.handleClick(e, this.insertTable.bind(this));
     });
-    document.addEventListener('click', (e: MouseEvent) => {
+    addEventListener('click', (e: MouseEvent) => {
       const visible = e.composedPath().includes(button);
       if (visible) return;
       if (!this.tableSelect.root.classList.contains('ql-hidden')) {
         this.tableSelect.hide(this.tableSelect.root);
       }
-    });
+    }, this.quill.root);
   }
 
   showTools(force?: boolean) {
