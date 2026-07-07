@@ -63,9 +63,10 @@ class Table extends Module {
   options: Options;
   
   static keyboardBindings: { [propName: string]: BindingObject };
-  
+
   static register() {
     Quill.register(TableCellBlock, true);
+    Quill.register(TableThBlock, true);
     Quill.register(TableCell, true);
     Quill.register(TableTh, true);
     Quill.register(TableRow, true);
@@ -77,12 +78,11 @@ class Table extends Module {
     Quill.register(TableCol, true);
     Quill.register(TableColgroup, true);
     Quill.register({
-      [TableThBlock.blotName]: TableThBlock,
       'modules/toolbar': TableToolbar,
       'modules/clipboard': TableClipboard
     }, true);
   }
-
+  
   constructor(quill: Quill, options: Options) {
     super(quill, options);
     quill.clipboard.addMatcher('td, th', matchTableCell);
@@ -159,6 +159,11 @@ class Table extends Module {
     if (!this.quill.isEnabled()) return;
     this.tableSelect?.hide(this.tableSelect.root);
     const table = (e.target as Element).closest('table');
+    // In-table Editor
+    if (table && !this.quill.root.contains(table)) {
+      this.hideTools();
+      return;
+    }
     if (!table) {
       this.hideTools();
       this.handleMouseMove();

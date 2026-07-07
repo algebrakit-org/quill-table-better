@@ -2,3 +2,4 @@ node_modules
 dist
 .serena
 .claude
+.DS_Store

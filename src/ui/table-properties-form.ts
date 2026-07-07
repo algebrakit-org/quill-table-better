@@ -12,7 +12,7 @@ import type {
 import eraseIcon from '../assets/icon/erase.svg';
 import downIcon from '../assets/icon/down.svg';
 import paletteIcon from '../assets/icon/palette.svg';
-import saveIcon from '../assets/icon/save.svg';
+import saveIcon from '../assets/icon/check.svg';
 import closeIcon from '../assets/icon/close.svg';
 import { getProperties, SHOW_TOOLTIPS_IN_CELL_MENU } from '../config';
 import {
@@ -20,6 +20,9 @@ import {
   createTooltip,
   getClosestElement,
   getComputeSelectedCols,
+  getCorrectBounds,
+  getCorrectContainerWidth,
+  getCorrectWidth,
   isDimensions,
   isValidColor,
   setElementProperty,
@@ -63,8 +66,8 @@ interface ColorList {
 }
 
 const ACTION_LIST = [
-  { icon: saveIcon, label: 'save' },
-  { icon: closeIcon, label: 'cancel' }
+  { icon: saveIcon, label: 'save', type: 'button' },
+  { icon: closeIcon, label: 'cancel', type: 'button' }
 ];
 
 const COLOR_LIST: ColorList[] = [
@@ -98,7 +101,7 @@ class TablePropertiesForm {
     this.attrs = { ...options.attribute };
     this.borderForm = [];
     this.saveButton = null;
-    this.form = this.createPropertiesForm(options); 
+    this.form = this.createPropertiesForm(options);
   }
 
   checkBtnsAction(status: string) {
@@ -115,13 +118,12 @@ class TablePropertiesForm {
     const container = createElement('div', this.tableMenus.quill.root);
     const fragment = createDocumentFragment(this.tableMenus.quill.root);
     container.classList.add('properties-form-action-row');
-    for (const { icon, label } of ACTION_LIST) {
+    for (const { icon, label, type } of ACTION_LIST) {
       const button = createElement('button', this.tableMenus.quill.root);
-      button.setAttribute('type', 'button');
       const iconContainer = createElement('span', this.tableMenus.quill.root);
       iconContainer.innerHTML = icon;
       button.appendChild(iconContainer);
-      setElementAttribute(button, { label });
+      setElementAttribute(button, { label, type });
       if (showLabel) {
         const labelContainer = createElement('span', this.tableMenus.quill.root);
         labelContainer.innerText = useLanguage(label);
@@ -177,7 +179,7 @@ class TablePropertiesForm {
 
   createColorInput(child: Child) {
     const container = this.createInput(child);
-    container.classList.add('label-field-view-color');    
+    container.classList.add('label-field-view-color');
     return container;
   }
 
@@ -243,6 +245,7 @@ class TablePropertiesForm {
     button.setAttribute('type', 'button');
     icon.innerHTML = svg;
     button.innerText = text;
+    button.setAttribute('type', 'button');
     container.classList.add('erase-container');
     container.appendChild(icon);
     container.appendChild(button);
@@ -359,7 +362,7 @@ class TablePropertiesForm {
     const colorPicker = new iro.ColorPicker(iroContainer, {
       width: 110,
       layout: [
-        { 
+        {
           component: iro.ui.Wheel,
           options: {}
         }
@@ -574,18 +577,25 @@ class TablePropertiesForm {
   saveCellAction() {
     const { selectedTds } = this.tableMenus.tableBetter.cellSelection;
     const { quill, table } = this.tableMenus;
-    const colgroup = (Quill.find(table) as TableContainer).colgroup();
+    const tableBlot = Quill.find(table) as TableContainer;
+    const colgroup = tableBlot.colgroup();
+    const isPercent = tableBlot.isPercent();
     const attrs = this.getDiffProperties();
-    const width = parseFloat(attrs['width']);
+    const floatW = parseFloat(attrs['width']);
+    const width =
+      attrs['width']?.endsWith('%')
+        ? floatW * getCorrectContainerWidth(table) / 100
+        : floatW;
     const align = attrs['text-align'];
     align && delete attrs['text-align'];
     const newSelectedTds = [];
     if (colgroup && width) {
       delete attrs['width'];
+      const { operateLine } = this.tableMenus.tableBetter;
       const { computeBounds } = this.tableMenus.getSelectedTdsInfo();
       const cols = getComputeSelectedCols(computeBounds, table, quill.container);
       for (const col of cols) {
-        col.setAttribute('width', `${width}`);
+        operateLine.setColWidth(col as HTMLElement, `${width}`, isPercent);
       }
     }
     for (const td of selectedTds) {
@@ -609,6 +619,7 @@ class TablePropertiesForm {
       newSelectedTds.push(parent.domNode);
     }
     this.tableMenus.tableBetter.cellSelection.setSelectedTds(newSelectedTds);
+    if (!isPercent) this.updateTableWidth(table, tableBlot, isPercent);
   }
 
   saveTableAction() {
@@ -712,7 +723,7 @@ class TablePropertiesForm {
     if (status) {
       wrapper.classList.add('label-field-view-error');
       this.setSaveButtonDisabled(true);
-    } else { 
+    } else {
       wrapper.classList.remove('label-field-view-error');
       const wrappers = this.form.querySelectorAll('.label-field-view-error');
       if (!wrappers.length) this.setSaveButtonDisabled(false);
@@ -722,7 +733,8 @@ class TablePropertiesForm {
   updatePropertiesForm(container: HTMLElement, type: string) {
     container.classList.remove('ql-table-triangle-none');
     const { height, width } = container.getBoundingClientRect();
-    const containerBounds = this.tableMenus.quill.container.getBoundingClientRect();
+    const quillContainer = this.tableMenus.quill.container;
+    const containerBounds = getCorrectBounds(quillContainer);
     const { top, left, right, bottom } = this.getComputeBounds(type);
     const { viewHeight } = this.getViewportSize();
     let correctTop = bottom + 10;
@@ -782,6 +794,16 @@ class TablePropertiesForm {
       return data === value;
     });
     selected && selected.classList.add(`ql-table-${type}-selected`);
+  }
+
+  updateTableWidth(table: HTMLElement, tableBlot: TableContainer, isPercent: boolean) {
+    const temporary = tableBlot.temporary();
+    setElementProperty(table, { width: 'auto' });
+    const { width } = table.getBoundingClientRect();
+    table.style.removeProperty('width');
+    setElementProperty(temporary.domNode, {
+      width: getCorrectWidth(width, isPercent, table)
+    });
   }
 }
 

@@ -1,6 +1,6 @@
 import Quill from 'quill';
 import Delta from 'quill-delta';
-import { BlockBlot, ContainerBlot, EmbedBlot } from 'parchment';
+import type { BlockBlot, ContainerBlot, EmbedBlot } from 'parchment';
 import type { AttributeMap, Op } from 'quill-delta';
 import type {
   Props,
@@ -45,9 +45,12 @@ const WHITE_LIST = [
 
 // Only supports formatting for a single cell.
 const SINGLE_WHITE_LIST = ['link', 'image'];
+const Block = Quill.import('blots/block') as typeof BlockBlot;
+const BlockEmbed = Quill.import('blots/block/embed') as typeof EmbedBlot;
+const Container = Quill.import('blots/container') as typeof ContainerBlot;
 
 function isLine(blot: unknown): blot is BlockBlot | EmbedBlot {
-  return blot instanceof BlockBlot || blot instanceof EmbedBlot;
+  return blot instanceof Block || blot instanceof BlockEmbed;
 }
 
 class CellSelection {
@@ -98,6 +101,7 @@ class CellSelection {
 
   exitTableFocus(block: TableCellChildren, up: boolean) {
     const cell = getCorrectCellBlot(block);
+    if(!cell) return;
     const table = cell.table();
     const offset = up ? -1 : table.length();
     const index = table.offset(this.quill.scroll) + offset;
@@ -444,7 +448,7 @@ class CellSelection {
     const getLines = (blot: TableCell | TableCellAllowedChildren) => {
       let lines: (BlockBlot | EmbedBlot)[] = [];
       blot.children.forEach((child: TableCellAllowedChildren) => {
-        if (child instanceof ContainerBlot) {
+        if (child instanceof Container) {
           lines = lines.concat(getLines(child));
         } else if (isLine(child)) {
           lines.push(child);

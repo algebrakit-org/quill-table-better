@@ -10,6 +10,11 @@ import pt_PT from './pt_PT';
 import ja_JP from './ja_JP';
 import pt_BR from './pt_BR';
 import cs_CZ from './cs_CZ';
+import da_DK from './da_DK';
+import nb_NO from './nb_NO';
+import it_IT from './it_IT';
+import sv_SE from './sv_SE';
+import zh_TW from './zh_TW';
 
 interface Config {
   [propName: string]: Props;
@@ -36,7 +41,12 @@ class Language {
       pt_PT,
       ja_JP,
       pt_BR,
-      cs_CZ
+      cs_CZ,
+      da_DK,
+      nb_NO,
+      it_IT,
+      sv_SE,
+      zh_TW,
     };
     this.init(language);
   }
@@ -62,7 +72,7 @@ class Language {
     this.config = {
       ...this.config,
       [name]: content
-    }
+    };
   }
 
   useLanguage(name: string) {
