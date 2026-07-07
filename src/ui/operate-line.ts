@@ -379,7 +379,7 @@ class OperateLine {
 
   setColWidth(domNode: HTMLElement, width: string, isPercent: boolean) {
     if (isPercent) {
-      width = getCorrectWidth(parseFloat(width), isPercent);
+      width = getCorrectWidth(parseFloat(width), isPercent, domNode);
       domNode.style.setProperty('width', width);
     } else {
       setElementAttribute(domNode, { width });
