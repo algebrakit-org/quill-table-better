@@ -1,4 +1,4 @@
-import type { Props } from '../types';
+import type { LanguageKey, Props } from '../types';
 import en_US from './en_US';
 import zh_CN from './zh_CN';
 import fr_FR from './fr_FR';
@@ -75,8 +75,8 @@ class Language {
     };
   }
 
-  useLanguage(name: string) {
-    return this.config[this.name][name];
+  useLanguage(name: LanguageKey) {
+    return this.config[this.name][name] ?? en_US[name];
   }
 }
 
