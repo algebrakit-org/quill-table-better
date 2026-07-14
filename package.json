@@ -55,7 +55,6 @@
   },
   "browserslist": [
     "last 1 version",
-    "> 1%",
-    "IE 10"
+    "> 1%"
   ]
 }
