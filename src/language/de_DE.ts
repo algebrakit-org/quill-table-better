@@ -1,4 +1,7 @@
 export default {
+  'colorMain': 'Hauptfarbe',
+  'colorSecondary': 'Sekundärfarbe',
+  'colorTertiary': 'Tertiärfarbe',
   'col': 'Spalte',
   'insColL': 'Spalte links einfügen',
   'insColR': 'Spalte rechts einfügen',

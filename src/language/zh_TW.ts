@@ -1,4 +1,7 @@
 export default {
+    colorMain: "基礎色",
+    colorSecondary: "輔助色",
+    colorTertiary: "強調色",
     col: "欄",
     insColL: "向左插入欄",
     insColR: "向右插入欄",
