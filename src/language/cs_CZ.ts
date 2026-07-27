@@ -1,4 +1,7 @@
 export default {
+  'colorMain': 'Hlavní barva',
+  'colorSecondary': 'Sekundární barva',
+  'colorTertiary': 'Terciární barva',
   'col': 'Sloupec',
   'insColL': 'Vložit sloupec vlevo',
   'insColR': 'Vložit sloupec vpravo',

@@ -14,6 +14,7 @@ import {
   TableColgroup
 } from '../formats/table';
 import TableHeader from '../formats/header';
+import type en_US from '../language/en_US';
 import TableList, { ListContainer } from '../formats/list';
 import CellSelection from '../ui/cell-selection';
 import OperateLine from '../ui/operate-line';
@@ -35,6 +36,8 @@ export interface Props {
   [propName: string]: string;
 }
 
+export type LanguageKey = keyof typeof en_US;
+
 export type InsertTableHandler = (rows: number, columns: number) => void;
 
 export type TableCellAllowedChildren = TableCellBlock | TableHeader | ListContainer;
@@ -43,7 +46,7 @@ export type TableCellChildren = TableCellAllowedChildren | TableList;
 
 export type TableCellMap = Map<string, HTMLElement[]>;
 
-export type UseLanguageHandler = (name: string) => string
+export type UseLanguageHandler = (name: LanguageKey) => string
 
 export type {
   QuillTableBetter,

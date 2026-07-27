@@ -1,4 +1,7 @@
 export default {
+    'colorMain': 'Ana renk',
+    'colorSecondary': 'İkincil renk',
+    'colorTertiary': 'Üçüncül renk',
     'col': 'Sütun',
     'insColL': 'Sola sütun ekle',
     'insColR': 'Sağa sütun ekle',

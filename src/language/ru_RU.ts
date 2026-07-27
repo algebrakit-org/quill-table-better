@@ -1,4 +1,7 @@
 export default {
+  'colorMain': 'Основной цвет',
+  'colorSecondary': 'Вторичный цвет',
+  'colorTertiary': 'Третичный цвет',
   'col': 'Столбец',
   'insColL': 'Вставить столбец слева',
   'insColR': 'Вставить столбец справа',

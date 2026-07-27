@@ -1,4 +1,7 @@
 export default {
+  'colorMain': '基础色',
+  'colorSecondary': '辅助色',
+  'colorTertiary': '强调色',
   'col': '列',
   'insColL': '向左插入列',
   'insColR': '向右插入列',

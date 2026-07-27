@@ -1,4 +1,7 @@
 export default {
+  'colorMain': 'Hovedfarve',
+  'colorSecondary': 'Sekundær farve',
+  'colorTertiary': 'Tertiær farve',
   'col': 'Kolonne',
   'insColL': 'Indsæt kolonne til venstre',
   'insColR': 'Indsæt kolonne til højre',

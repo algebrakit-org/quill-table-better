@@ -1,4 +1,7 @@
 export default {
+  'colorMain': '基本色',
+  'colorSecondary': '補助色',
+  'colorTertiary': '強調色',
   'col': '列',
   'insColL': '左に列を挿入',
   'insColR': '右に列を挿入',

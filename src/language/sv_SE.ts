@@ -1,4 +1,7 @@
 export default {
+  'colorMain': 'Huvudfärg',
+  'colorSecondary': 'Sekundärfärg',
+  'colorTertiary': 'Tertiärfärg',
   'col': 'Kolumn',
   'insColL': 'Infoga kolumn till vänster',
   'insColR': 'Infoga kolumn till höger',

@@ -1,4 +1,5 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CheckTranslationsPlugin = require('./check-translations-plugin');
 
 module.exports = {
   module: {
@@ -30,9 +31,12 @@ module.exports = {
       }
     ]
   },
-  plugins: [new MiniCssExtractPlugin({
-    filename: '[name].css'
-  })],
+  plugins: [
+    new MiniCssExtractPlugin({
+      filename: '[name].css'
+    }),
+    new CheckTranslationsPlugin()
+  ],
   resolve: {
     extensions: ['.ts', '.scss', '.js']
   }
